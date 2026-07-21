@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tamil EPUB Reader+ — AI Chapter Summary Generator (Gemini version)
 --------------------------------------------------------------------
 Purpose:
@@ -10,7 +10,7 @@ Requirements:
 
 Setup:
     1. Get a free API key from https://aistudio.google.com/apikey
-       (keys start with "AQ." — this is the current, correct format)
+       (keys start with "AQ." - this is the current, correct format)
     2. Set it as an environment variable:
 
        Windows (Command Prompt):
@@ -41,10 +41,7 @@ def get_api_key():
     return api_key
 
 
-def summarize_chapter(client, chapter_title: str, chapter_text: str, max_chars: int = 6000):
-    """
-    Sends chapter text to Gemini and asks for a short Tamil summary.
-    """
+def summarize_chapter(client, chapter_title: str, chapter_text: str, max_chars: int = 6000, max_retries: int = 2):
     text_for_prompt = chapter_text[:max_chars]
 
     prompt = f"""இது ஒரு தமிழ் புத்தகத்தின் அத்தியாயம். இதை 3-4 வரிகளில் தமிழில் சுருக்கமாக சொல்லவும்.
@@ -57,11 +54,26 @@ def summarize_chapter(client, chapter_title: str, chapter_text: str, max_chars: 
 
 சுருக்கம் (தமிழில், 3-4 வரிகள் மட்டும்):"""
 
-    response = client.models.generate_content(
-        model="gemini-3.1-flash-lite",
-        contents=prompt,
-    )
-    return response.text.strip()
+    last_reason = None
+    for attempt in range(1, max_retries + 1):
+        response = client.models.generate_content(
+            model="gemini-3.1-flash-lite",
+            contents=prompt,
+        )
+
+        if response.text:
+            return response.text.strip()
+
+        try:
+            candidate = response.candidates[0]
+            last_reason = str(candidate.finish_reason)
+        except Exception:
+            last_reason = "unknown (no candidate info)"
+
+        print(f"    (attempt {attempt} got empty response, reason: {last_reason}, retrying...)")
+        time.sleep(3)
+
+    return f"[Summary unavailable - Gemini returned no content, reason: {last_reason}]"
 
 
 def generate_all_summaries(input_json: str, output_json: str = None):
@@ -89,7 +101,7 @@ def generate_all_summaries(input_json: str, output_json: str = None):
             "summary": summary,
         })
 
-        time.sleep(7)  # observed free tier limit ~10 requests/minute, pace accordingly
+        time.sleep(7)
 
     result = {
         "source_file": data["source_file"],
