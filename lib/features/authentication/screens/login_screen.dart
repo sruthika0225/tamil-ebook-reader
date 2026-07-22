@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../home/screens/home_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../services/auth/auth_service.dart';
@@ -31,12 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
         email: emailController.text,
         password: passwordController.text,
       );
+      print("Current User: ${FirebaseAuth.instance.currentUser?.email}");
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
+      Navigator.pushReplacement(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Login Successful")));
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
 
       // TODO: Navigate to Home Screen
       ScaffoldMessenger.of(

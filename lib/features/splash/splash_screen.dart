@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../authentication/screens/login_screen.dart';
+import '../authentication/screens/login_screen.dart';
+import '../home/screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,15 +17,29 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   @override
+  @override
   void initState() {
     super.initState();
+    _checkLogin();
+  }
 
-    Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    });
+  Future<void> _checkLogin() async {
+    await Future.delayed(const Duration(seconds: 3));
+
+    await FirebaseAuth.instance.authStateChanges().first;
+
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    print("Splash User: ${user?.email}");
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => user != null ? const HomeScreen() : const LoginScreen(),
+      ),
+    );
   }
 
   @override
