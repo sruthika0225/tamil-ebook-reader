@@ -6,6 +6,7 @@ import '../../authentication/screens/login_screen.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/quote_card.dart';
 import '../widgets/book_card.dart';
+import '../screens/book_details_screen.dart';
 import '../widgets/section_title.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -68,10 +69,66 @@ class HomeScreen extends StatelessWidget {
                 height: 250,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  children: const [
-                    BookCard(title: "திருக்குறள்", author: "திருவள்ளுவர்"),
-                    BookCard(title: "சிலப்பதிகாரம்", author: "இளங்கோ அடிகள்"),
-                    BookCard(title: "பொன்னியின் செல்வன்", author: "கல்கி"),
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BookDetailsScreen(
+                              title: "திருக்குறள்",
+                              author: "திருவள்ளுவர்",
+                              summary:
+                                  "திருக்குறள் என்பது உலகப் புகழ்பெற்ற தமிழ் அறநூல். இதில் 1330 குறள்கள் உள்ளன. அறம், பொருள் மற்றும் இன்பம் ஆகிய மூன்று பகுதிகளாக அமைந்துள்ளது.",
+                            ),
+                          ),
+                        );
+                      },
+                      child: BookCard(
+                        title: "திருக்குறள்",
+                        author: "திருவள்ளுவர்",
+                      ),
+                    ),
+
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BookDetailsScreen(
+                              title: "சிலப்பதிகாரம்",
+                              author: "இளங்கோ அடிகள்",
+                              summary:
+                                  "சிலப்பதிகாரம் தமிழின் ஐம்பெரும் காப்பியங்களில் ஒன்றாகும். கோவலன் மற்றும் கண்ணகியின் வாழ்க்கையை மையமாகக் கொண்டு அமைந்துள்ளது.",
+                            ),
+                          ),
+                        );
+                      },
+                      child: BookCard(
+                        title: "சிலப்பதிகாரம்",
+                        author: "இளங்கோ அடிகள்",
+                      ),
+                    ),
+
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BookDetailsScreen(
+                              title: "பொன்னியின் செல்வன்",
+                              author: "கல்கி",
+                              summary:
+                                  "பொன்னியின் செல்வன் சோழர் பேரரசை மையமாகக் கொண்ட வரலாற்று நாவல். கல்கி எழுதிய மிகவும் புகழ்பெற்ற தமிழ் இலக்கியங்களில் இதுவும் ஒன்றாகும்.",
+                            ),
+                          ),
+                        );
+                      },
+                      child: BookCard(
+                        title: "பொன்னியின் செல்வன்",
+                        author: "கல்கி",
+                      ),
+                    ),
                   ],
                 ),
               ),
