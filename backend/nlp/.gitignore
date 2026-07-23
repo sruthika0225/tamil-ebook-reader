@@ -1,5 +1,0 @@
-*.epub
-*.json
-__pycache__/
-*.pyc
-.env*_audio/ 
