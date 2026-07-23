@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'reader_screen.dart';
+import 'chapter_list_screen.dart';
 
 import '../../../core/theme/app_colors.dart';
 
@@ -92,11 +94,18 @@ class BookDetailsScreen extends StatelessWidget {
 
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              height: 50,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.menu_book),
+                label: const Text("படிக்க தொடங்கு"),
                 onPressed: () {
-                  // Navigate to Reader Screen later
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChapterListScreen(bookTitle: title),
+                    ),
+                  );
                 },
-                child: const Text("Start Reading"),
               ),
             ),
 

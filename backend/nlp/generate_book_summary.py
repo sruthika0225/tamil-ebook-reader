@@ -1,287 +1,117 @@
-import json
+"""
+generate_book_summary.py
+
+Reads a chapter-summaries JSON (produced by generate_summaries_gemini.py)
+and asks Gemini to write ONE overall summary for the entire book, by
+combining all the individual chapter summaries into one request.
+
+Requirements:
+    pip install -U google-genai
+
+Setup:
+    Same GEMINI_API_KEY environment variable as generate_summaries_gemini.py
+
+Usage:
+    python generate_book_summary.py deiva_yaanai_summaries.json
+
+Output:
+    Saves a file named <book>_book_summary.json containing one overall
+    Tamil summary of the whole book.
+"""
+
+import sys
 import os
-import re
+import json
+from pathlib import Path
+
 from google import genai
 
-# ======================================================
-# CONFIGURATION
-# ======================================================
 
-API_KEY = "YOUR_GEMINI_API_KEY"
-
-MODEL = "gemini-2.5-flash-lite"
-
-BOOK_FOLDER = "output/deiva_yaanai"
-
-CHAPTERS_FILE = os.path.join(
-    BOOK_FOLDER,
-    "chapters.json"
-)
-
-OUTPUT_FILE = os.path.join(
-    BOOK_FOLDER,
-    "book_summary.json"
-)
-
-SUMMARY_CHAPTERS = 10
+def get_api_key():
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("ERROR: No API key found.")
+        print("Set it first by running this in the SAME command prompt window:")
+        print("  set GEMINI_API_KEY=your_key_here")
+        sys.exit(1)
+    return api_key
 
 
-# ======================================================
-# GEMINI CLIENT
-# ======================================================
+def build_combined_text(chapter_summaries, max_chars=8000):
+    """
+    Joins all chapter summaries into one block of text to send to Gemini.
+    Using summaries (not full chapter text) keeps this well within
+    Gemini's request size and the free-tier limits, since a whole book's
+    full text would be far too much to send in one request.
+    """
+    parts = []
+    for ch in chapter_summaries:
+        title = ch.get("chapter_title", "")
+        summary = ch.get("summary", "")
+        if summary:
+            parts.append(f"{title}: {summary}")
 
-client = genai.Client(api_key=API_KEY)
-
-
-# ======================================================
-# LOAD CHAPTERS
-# ======================================================
-
-def load_chapters():
-
-    if not os.path.exists(CHAPTERS_FILE):
-        raise FileNotFoundError(f"Cannot find {CHAPTERS_FILE}")
-
-    with open(CHAPTERS_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    # Extract the chapters list
-    chapters = data.get("chapters", [])
-
-    if not chapters:
-        raise ValueError("No chapters found in chapters.json")
-
-    return chapters
+    combined = "\n".join(parts)
+    return combined[:max_chars]
 
 
-# ======================================================
-# BUILD BOOK TEXT
-# ======================================================
+def summarize_whole_book(client, combined_text):
+    prompt = f"""கீழே ஒரு தமிழ் புத்தகத்தின் ஒவ்வொரு அத்தியாயத்தின் சுருக்கமும் கொடுக்கப்பட்டுள்ளது.
+இவை அனைத்தையும் படித்து, முழு புத்தகத்தையும் ஒரே ஒரு சுருக்கமாக 8-10 வரிகளில் தமிழில் எழுதவும்.
+கதையின் முக்கிய போக்கை மட்டும் சொல்லவும், ஒவ்வொரு அத்தியாயத்தையும் தனித்தனியாக பட்டியலிட வேண்டாம்.
 
-def build_book_text(chapters):
+அத்தியாய சுருக்கங்கள்:
+{combined_text}
 
-    selected = chapters[:min(SUMMARY_CHAPTERS, len(chapters))]
-
-    print(
-        f"Using {len(selected)} chapter(s) for summary..."
-    )
-
-    text = ""
-
-    for chapter in selected:
-
-        title = chapter.get("title", "")
-
-        body = chapter.get("text", "")
-
-        text += f"\n\n{title}\n\n{body}"
-
-    return text
-
-
-# ======================================================
-# PROMPT
-# ======================================================
-
-def build_prompt(book_text):
-
-    return f"""
-You are an expert Tamil literature editor.
-
-Below are the first chapters of a Tamil novel.
-
-Generate a spoiler-free back-cover style summary.
-
-Rules:
-
-- Write the summary in Tamil.
-- Do NOT reveal the ending.
-- Do NOT invent events.
-- Only use the provided text.
-- Mention the setting.
-- Mention the main characters.
-- Mention the central conflict.
-- Mention the overall mood.
-- Keep it engaging.
-
-Return ONLY valid JSON.
-
-JSON format:
-
-{{
-    "summary":"",
-    "genre":"",
-    "themes":[
-        "",
-        "",
-        ""
-    ],
-    "recommended_age":""
-}}
-
-Book:
-
-{book_text}
-"""
-# ======================================================
-# GENERATE SUMMARY
-# ======================================================
-
-def generate_summary(book_text):
-
-    prompt = build_prompt(book_text)
-
-    print("Generating AI summary...")
+முழு புத்தக சுருக்கம் (தமிழில், 8-10 வரிகள் மட்டும்):"""
 
     response = client.models.generate_content(
-        model=MODEL,
+        model="gemini-3.1-flash-lite",
         contents=prompt,
     )
-
-    if not response.text:
-        raise Exception("Gemini returned an empty response.")
-
-    return response.text
+    return response.text.strip()
 
 
-# ======================================================
-# CLEAN RESPONSE
-# ======================================================
+def generate(input_json: str):
+    api_key = get_api_key()
+    client = genai.Client(api_key=api_key)
 
-def clean_json(text):
+    with open(input_json, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    text = text.strip()
+    if "chapter_summaries" not in data:
+        print("ERROR: This doesn't look like a chapter-summaries JSON file.")
+        print("Run generate_summaries_gemini.py first to create one.")
+        sys.exit(1)
 
-    if text.startswith("```json"):
-        text = text.replace("```json", "", 1)
+    print("Combining all chapter summaries...")
+    combined_text = build_combined_text(data["chapter_summaries"])
 
-    if text.startswith("```"):
-        text = text.replace("```", "", 1)
-
-    if text.endswith("```"):
-        text = text[:-3]
-
-    return text.strip()
-
-
-# ======================================================
-# PARSE JSON
-# ======================================================
-
-def parse_summary(response_text):
-
-    cleaned = clean_json(response_text)
-
+    print("Asking Gemini for one whole-book summary...")
     try:
-        summary = json.loads(cleaned)
+        book_summary = summarize_whole_book(client, combined_text)
+    except Exception as e:
+        print(f"Failed: {e}")
+        sys.exit(1)
 
-    except json.JSONDecodeError as e:
+    result = {
+        "source_file": data.get("source_file", input_json),
+        "book_summary": book_summary,
+    }
 
-        print("\nGemini Response:\n")
-        print(cleaned)
+    book_name = Path(input_json).stem
+    output_path = f"{book_name.replace('_summaries', '')}_book_summary.json"
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
 
-        raise Exception(
-            f"Invalid JSON returned by Gemini.\n{e}"
-        )
+    print(f"\nSaved whole-book summary to: {output_path}")
+    print("\n--- Preview ---")
+    print(book_summary)
 
-    return summary
-
-
-# ======================================================
-# VALIDATE OUTPUT
-# ======================================================
-
-def validate_summary(summary):
-
-    required_keys = [
-        "summary",
-        "genre",
-        "themes",
-        "recommended_age"
-    ]
-
-    for key in required_keys:
-
-        if key not in summary:
-            raise Exception(
-                f"Missing key: {key}"
-            )
-
-    if not isinstance(summary["themes"], list):
-        raise Exception(
-            "'themes' must be a list."
-        )
-
-    return summary
-
-# ======================================================
-# SAVE SUMMARY
-# ======================================================
-
-def save_summary(summary):
-
-    with open(
-        OUTPUT_FILE,
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-            summary,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
-
-    print(f"\nSummary saved to:\n{OUTPUT_FILE}")
-
-
-# ======================================================
-# MAIN
-# ======================================================
-
-def main():
-
-    print("=" * 50)
-    print("Tamil Book AI Summary Generator")
-    print("=" * 50)
-
-    print("\nLoading chapters...")
-
-    chapters = load_chapters()
-
-    print(f"Found {len(chapters)} chapters.")
-
-    book_text = build_book_text(chapters)
-
-    print("\nSending first chapters to Gemini...")
-
-    response = generate_summary(book_text)
-
-    print("Processing response...")
-
-    summary = parse_summary(response)
-
-    summary = validate_summary(summary)
-
-    save_summary(summary)
-
-    print("\nDone!")
-    print("=" * 50)
-
-
-# ======================================================
-# ENTRY POINT
-# ======================================================
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python generate_book_summary.py chapters_summaries.json")
+        sys.exit(1)
 
-    try:
-        main()
-
-    except Exception as e:
-
-        print("\nERROR")
-        print("-" * 50)
-        print(e)
-        print("-" * 50)
+    generate(sys.argv[1])

@@ -47,16 +47,22 @@ def make_audio_for_chapter(text: str, output_path: str, max_chars: int = 4500):
 
 def detect_format(data):
     """
-    Figures out whether this JSON came from the extractor (full chapters)
-    or the summarizer (short summaries), and returns the list of items
-    plus which field holds the text to speak.
+    Figures out whether this JSON came from the extractor (full chapters),
+    the summarizer (short per-chapter summaries), or the whole-book
+    summarizer (one summary for the entire book), and returns the list
+    of items plus which field holds the text to speak.
     """
     if "chapters" in data:
         return data["chapters"], "text", "title"
     elif "chapter_summaries" in data:
         return data["chapter_summaries"], "summary", "chapter_title"
+    elif "book_summary" in data:
+        # Wrap the single whole-book summary in a list so the rest of the
+        # code (which expects a list of items) can handle it the same way.
+        fake_item = {"title": "Whole Book Summary", "summary": data["book_summary"]}
+        return [fake_item], "summary", "title"
     else:
-        print("ERROR: This JSON doesn't look like a chapters or summaries file.")
+        print("ERROR: This JSON doesn't look like a chapters, chapter-summaries, or book-summary file.")
         sys.exit(1)
 
 

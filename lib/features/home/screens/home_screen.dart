@@ -6,11 +6,28 @@ import '../../authentication/screens/login_screen.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/quote_card.dart';
 import '../widgets/book_card.dart';
+import '../widgets/continue_reading.dart';
+import '../widgets/featured_books.dart';
+import '../widgets/category_section.dart';
+import '../widgets/bottom_navbar.dart';
 import '../screens/book_details_screen.dart';
 import '../widgets/section_title.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int selectedIndex = 0;
+  final List<Map<String, dynamic>> featuredBooks = [
+    {"title": "திருக்குறள்", "author": "திருவள்ளுவர்", "rating": 4.9},
+    {"title": "சிலப்பதிகாரம்", "author": "இளங்கோ அடிகள்", "rating": 4.8},
+    {"title": "பொன்னியின் செல்வன்", "author": "கல்கி", "rating": 4.9},
+    {"title": "மணிமேகலை", "author": "சாத்தனார்", "rating": 4.7},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +75,27 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 30),
 
               const QuoteCard(),
+
+              const SizedBox(height: 35),
+
+              ContinueReading(
+                title: "திருக்குறள்",
+                author: "திருவள்ளுவர்",
+                progress: .62,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BookDetailsScreen(
+                        title: "திருக்குறள்",
+                        author: "திருவள்ளுவர்",
+                        summary:
+                            "திருக்குறள் என்பது உலகப் புகழ்பெற்ற தமிழ் அறநூல்.",
+                      ),
+                    ),
+                  );
+                },
+              ),
 
               const SizedBox(height: 35),
 
@@ -132,9 +170,56 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 35),
+
+              const SectionTitle(title: "⭐ பரிந்துரைக்கப்பட்ட நூல்கள்"),
+
+              const SizedBox(height: 15),
+
+              FeaturedBooks(
+                books: featuredBooks,
+                onBookTap: (book) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BookDetailsScreen(
+                        title: book["title"],
+                        author: book["author"],
+                        summary:
+                            "இந்த நூலின் சுருக்கம் பின்னர் API மூலம் வரும்.",
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 35),
+
+              const SectionTitle(title: "📂 வகைகள்"),
+
+              const SizedBox(height: 15),
+
+              CategorySection(
+                onCategoryTap: (category) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("$category தேர்ந்தெடுக்கப்பட்டது")),
+                  );
+                },
+              ),
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavbar(
+        currentIndex: selectedIndex,
+        onTap: (index) {
+          setState(() {
+            selectedIndex = index;
+          });
+
+          // Navigation can be added later
+        },
       ),
     );
   }
