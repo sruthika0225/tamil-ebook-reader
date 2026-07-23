@@ -71,9 +71,10 @@ def generate_all_audio(input_json: str):
         data = json.load(f)
 
     items, text_field, title_field = detect_format(data)
+    is_single_book_summary = "book_summary" in data
 
     book_name = Path(input_json).stem
-    output_folder = f"{book_name}_audio"
+    output_folder = str(Path(input_json).parent / f"{book_name}_audio")
     os.makedirs(output_folder, exist_ok=True)
 
     total = len(items)
@@ -85,7 +86,10 @@ def generate_all_audio(input_json: str):
 
         print(f"[{i}/{total}] Generating audio: {title}...")
 
-        output_path = os.path.join(output_folder, f"chapter_{i:02d}.mp3")
+        if is_single_book_summary:
+            output_path = os.path.join(output_folder, "book_summary.mp3")
+        else:
+            output_path = os.path.join(output_folder, f"chapter_{i:02d}.mp3")
 
         try:
             made = make_audio_for_chapter(text, output_path)

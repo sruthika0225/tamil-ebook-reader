@@ -100,7 +100,7 @@ def generate(input_json: str):
     }
 
     book_name = Path(input_json).stem
-    output_path = f"{book_name.replace('_summaries', '')}_book_summary.json"
+    output_path = str(Path(input_json).parent / f"{book_name.replace('_summaries', '')}_book_summary.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
 
